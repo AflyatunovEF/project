@@ -1,39 +1,44 @@
 import random
-import time
-import logging
 from aiogram import Bot, Dispatcher, types, executor
 
-# Укажите токен вашего бота
-TOKEN = '5744863972:AAE-JeYBvzxgy1hE4IxB2HWAmFQXG_LNBDM'
+# Токен бота, который нужно получить у BotFather в Telegram
+BOT_TOKEN = '6068004483:AAHdAyF_dn0b4-TSgmNRrAi0vao0m9mgFK0'
 
-# Инициализируйте бота и диспетчер
-bot = Bot(token=TOKEN)
+# Создаем объект бота
+bot = Bot(token=BOT_TOKEN)
+
+# Создаем объект dispatcher и передаем ему объект бота
 dp = Dispatcher(bot)
 
+# Список участников чата
+chat_users = []
 
-# Создайте функцию, которая будет выбирать случайного участника из списка
-def choose_winner(participants):
-    return random.choice(participants)
+# Хэндлер на команду /start
+@dp.message_handler(commands=['start'])
+async def start_message(message: types.Message):
+    await message.reply('Привет! Я буду рандомно выбирать победителя среди участников чата.')
 
+# Хэндлер на команду /add_user
+@dp.message_handler(commands=['add_user'])
+async def add_user(message: types.Message):
+    # Добавляем пользователя в список, если его там еще нет
+    if message.from_user not in chat_users:
+        chat_users.append(message.from_user)
+        await message.reply(f'Пользователь {message.from_user.full_name} добавлен.')
+    else:
+        await message.reply('Вы уже добавлены в список участников.')
 
-# Добавьте обработчик команды /winner
-@dp.message_handler(commands=['winner'])
-async def choose_random_winner(message: types.Message):
-    # Получите список участников чата
-    chat_id = message.chat.id
-    participants = []
-    async for member in bot.iter_chat_members(chat_id=chat_id):
-        if not member.user.is_bot:
-            participants.append(member.user.username)
-    # Выберите победителя
-    winner = choose_winner(participants)
-    # Отправьте сообщение с победителем
-    await message.answer(f"Победитель выбран: @{winner}")
+# Хэндлер на команду /choose_winner
+@dp.message_handler(commands=['choose_winner'])
+async def choose_winner(message: types.Message):
+    # Если в списке участников есть хотя бы один пользователь
+    if chat_users:
+        # Рандомно выбираем победителя из списка участников
+        winner = random.choice(chat_users)
+        # Отправляем сообщение с ником победителя
+        await message.reply(f'Победитель: {winner.username}!')
+    else:
+        await message.reply('В списке участников пока нет ни одного пользователя.')
 
-
-# Запустите бота
 if __name__ == '__main__':
-    executor.start_polling(dp)
-
-PROXY_URL = "http://proxy.server:3128"
-bot = Bot(proxy=PROXY_URL)
+    executor.start_polling(dp, skip_updates=True)
